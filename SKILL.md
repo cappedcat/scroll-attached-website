@@ -1,5 +1,5 @@
 ---
-name: scroll-scrub-landing
+name: scroll-attached-website
 description: >-
   Build a premium scroll-driven product landing page whose hero is a canvas that
   scrubs through AI-generated video frames as the user scrolls — the product

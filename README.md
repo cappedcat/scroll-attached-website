@@ -1,4 +1,4 @@
-# scroll-scrub-landing
+# scroll-attached-website
 
 A Claude Code skill that builds a premium **scroll-driven product landing page** — a
 full-screen canvas hero that scrubs through AI-generated video frames as the visitor
@@ -14,7 +14,7 @@ See [`SKILL.md`](./SKILL.md) for the full instructions.
 ## Install
 
 ```bash
-git clone https://github.com/artem-techman/scroll-scrub-landing ~/.claude/plugins/scroll-scrub-landing
+git clone https://github.com/artem-techman/scroll-attached-website ~/.claude/skills/scroll-attached-website
 ```
 
 **Requires:** the Higgsfield MCP (image/video generation), `ffmpeg`/`ffprobe` on PATH, and Node for Next.js.
