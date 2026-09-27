@@ -10,10 +10,11 @@ description: >-
   style scroll reveal, a product that "explodes" or "transforms" or "rotates" as
   you scroll, a frame-by-frame scroll video effect, or a cinematic product
   landing page — even if they don't say "canvas" or "frames". Runs the full
-  pipeline: renders the hero frames as a procedural Blender scene (assembled
-  → exploded/transformed, with a camera orbit), extracts frames, and
-  scaffolds a Next.js site. The reusable heart is the scroll frame-scrubbing
-  engine; the product, brand colour, and copy are inputs.
+  pipeline: gets the hero frames either by rendering a procedural Blender
+  scene (assembled → exploded/transformed, with a camera orbit) or by
+  extracting them from a video the user already has, then scaffolds a
+  Next.js site. The reusable heart is the scroll frame-scrubbing engine; the
+  product, brand colour, and copy are inputs.
 ---
 
 # Scroll-scrub product landing page
@@ -31,42 +32,52 @@ what changes per build is the product in the frames and the copy in one config f
 ## What you need from the user
 
 Just the product. If they haven't said, ask briefly for: the product (and any
-signature material/finish), a brand accent colour if they have one, and whether
-they want you to invent plausible specs/copy or use real ones they'll provide.
-Then proceed — don't over-interview. If they gave a product already, start.
+signature material/finish), a brand accent colour if they have one, whether
+they want you to invent plausible specs/copy or use real ones they'll provide,
+and — for the hero frames — whether they already have a video of the product
+to scrub through, or want one generated in Blender. Then proceed — don't
+over-interview. If they gave a product already, start.
 
-Requires: `blender` on PATH (headless-capable), `ffmpeg`/`ffprobe` on PATH, and
-Node for Next.js.
+Requires: `ffmpeg`/`ffprobe` on PATH and Node for Next.js always; `blender` on
+PATH (headless-capable) only if generating frames rather than using a supplied
+video.
 
 ## The pipeline (run in order)
 
 Work inside a fresh project directory, e.g. `<product-slug>/`.
 
-### 1 · Render the hero frames in Blender — see `references/blender-render.md`
+### 1 · Get the hero frames
+
+Two options — pick based on whether the user has a video:
+
+**Option A — user supplies a video.** Run
+`scripts/extract_frames.sh <path/to/video> <project-root>`. It probes the
+video, extracts JPEGs at 24fps into `<project-root>/public/frames/`, and
+prints `FRAME_COUNT` — paste that into `site.config.ts` in step 4. This is the
+default whenever the user already has hero footage; don't render one in
+Blender instead.
+
+**Option B — no video, generate one — see `references/blender-render.md`.**
 Read that file and follow it. In short: write a procedural `bpy` script that
 builds the product from primitives, keyframes an explode/transform and a
 camera orbit, tunes lighting so the product reads against pure black, and
 renders each frame as a JPEG via `blender -b -P <script>.py -- <out_dir> ...`.
-Default to this over an AI image/video generator — it's exact, reproducible,
-and doesn't depend on any particular MCP tool being connected.
+Prefer this over an AI image/video generator — it's exact, reproducible, and
+doesn't depend on any particular MCP tool being connected.
 
 Render a handful of test frames at low resolution first and look at them
 (Read the image) before committing to a full-length render — a weak explode
 choreography or a wrong camera angle means a weak scrub.
 
-### 2 · Copy frames into the project
-Blender already wrote `frame_%04d.jpg` directly — there's no video to extract
-from. Copy the sequence into `public/frames/` and count it:
+Blender writes `frame_%04d.jpg` directly — there's no video to extract from.
+Copy the sequence into `public/frames/` and count it:
 ```bash
 mkdir -p <project-root>/public/frames
 cp <out_dir>/frame_*.jpg <project-root>/public/frames/
 ls <project-root>/public/frames/*.jpg | wc -l   # → FRAME_COUNT, paste into site.config.ts
 ```
-(`scripts/extract_frames.sh` is a leftover for the rare case you're starting
-from an existing video instead of a Blender render — mp4 in, JPEGs +
-`FRAME_COUNT` out. Not the default path.)
 
-### 3 · Scaffold from the template
+### 2 · Scaffold from the template
 Copy `assets/template/` into the project root. That is a complete Next.js 15 /
 React 19 / framer-motion / TypeScript app whose only per-product surface is
 `app/site.config.ts`. Its layout:
@@ -82,14 +93,14 @@ app/
     FeaturesSection.tsx  SpecsSection.tsx  ClosingCTA.tsx
 ```
 
-### 4 · Fill in `app/site.config.ts` — see `references/customize-and-verify.md`
-Set `frameCount` to the number from step 2 (**required** — wrong value breaks the
+### 3 · Fill in `app/site.config.ts` — see `references/customize-and-verify.md`
+Set `frameCount` to the number from step 1 (**required** — wrong value breaks the
 scrub). Then write the product's real copy: hero label/name/tagline/CTA, the
 accent colour, 3–6 features, 8–10 accurate specs, and the closing CTA. **No lorem
 ipsum** — write like the brand. Follow the design tokens; keep the background pure
 black.
 
-### 5 · Run and verify — see `references/customize-and-verify.md`
+### 4 · Run and verify — see `references/customize-and-verify.md`
 `npm install && npm run dev` via the Browser-pane preview tools (add the server to
 the **workspace-root** `.claude/launch.json`). Then verify the scrub.
 
