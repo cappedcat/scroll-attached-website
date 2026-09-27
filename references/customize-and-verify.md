@@ -87,6 +87,43 @@ Sanity checks that *do* work normally: the top-of-page screenshot (frame 0 +
 overlay copy), `/frames/frame_0001.jpg` returning 200, and the console/server
 logs being error-free.
 
+## Supplementary imagery (accessories, box contents, etc.)
+
+Not everything comes from the Blender render — a story section about a
+bundled accessory, or an "in the box" shot, is often better served by a
+clean reference image than a full second 3D model. If the user hands you a
+photo/icon/diagram that doesn't match the site's black-void, monochrome-line
+palette, recoloring it usually beats re-shooting or re-modeling it:
+
+```bash
+# 1. Crop off any baked-in wordmark/watermark the site will duplicate via its
+#    own label chip (check bounds visually first, e.g. with the Read tool).
+magick input.avif -crop <W>x<H>+0+0 +repage cropped.png
+
+# 2. Trim surrounding whitespace — use -fuzz, source images are rarely pure
+#    uniform white at the edges (compression noise, anti-aliasing).
+magick cropped.png -fuzz 5% -trim +repage trimmed.png
+
+# 3. Flatten alpha onto white BEFORE negating. -negate inverts the alpha
+#    channel too by default — on an image with transparency this silently
+#    "does nothing" visually (transparent stays invisible, opaque black
+#    becomes opaque white — but if the shape was already opaque-black on
+#    transparent, negating alpha along with color makes it transparent
+#    again). Remove alpha first so negate only touches color.
+magick trimmed.png -background white -alpha remove -alpha off flat.png
+
+# 4. Invert to match the site's white-line-on-black look, then pad.
+magick flat.png -negate -bordercolor black -border 10% final.png
+```
+
+Place the result in `public/images/` and point the relevant `site.config.ts`
+`image` field at it. A source image with a plain white background inverts to
+pure `#000` — the site's exact background color — so it drops into a
+`.panel`/`.glass` container with no visible seam, no cropping or masking
+needed. This only works for flat, high-contrast source art (line icons,
+logos, silhouettes); a photo with real color and gradients will invert into
+something unusable — don't try this on a photograph.
+
 ## Deploying (optional)
 
 It's a standard Next.js app — `vercel --prod` works. The frames add weight

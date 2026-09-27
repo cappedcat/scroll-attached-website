@@ -10,10 +10,10 @@ description: >-
   style scroll reveal, a product that "explodes" or "transforms" or "rotates" as
   you scroll, a frame-by-frame scroll video effect, or a cinematic product
   landing page — even if they don't say "canvas" or "frames". Runs the full
-  pipeline: generates three Higgsfield assets (base image → transformed reference
-  → start/end-frame hero video), extracts frames, and scaffolds a Next.js site.
-  The reusable heart is the scroll frame-scrubbing engine; the product, brand
-  colour, and copy are inputs.
+  pipeline: renders the hero frames as a procedural Blender scene (assembled
+  → exploded/transformed, with a camera orbit), extracts frames, and
+  scaffolds a Next.js site. The reusable heart is the scroll frame-scrubbing
+  engine; the product, brand colour, and copy are inputs.
 ---
 
 # Scroll-scrub product landing page
@@ -35,30 +35,36 @@ signature material/finish), a brand accent colour if they have one, and whether
 they want you to invent plausible specs/copy or use real ones they'll provide.
 Then proceed — don't over-interview. If they gave a product already, start.
 
-Requires: the Higgsfield MCP tools (image/video generation), `ffmpeg`/`ffprobe`
-on PATH, and Node for Next.js.
+Requires: `blender` on PATH (headless-capable), `ffmpeg`/`ffprobe` on PATH, and
+Node for Next.js.
 
 ## The pipeline (run in order)
 
 Work inside a fresh project directory, e.g. `<product-slug>/`.
 
-### 1 · Generate the three assets — see `references/higgsfield-assets.md`
-Read that file and follow it. In short: Asset 1 = base "assembled" product image
-(pure black bg); Asset 2 = the "transformed" end state (exploded / cross-section /
-ingredients — pick what fits the product), referencing Asset 1; Asset 3 = a
-`seedance_2_0` video using Asset 1 as `start_image` and Asset 2 as `end_image`,
-10s / 1080p / silent. Poll `job_display` until the video completes (it takes
-**10–15 min** — that's normal), then download it as `hero.mp4`.
+### 1 · Render the hero frames in Blender — see `references/blender-render.md`
+Read that file and follow it. In short: write a procedural `bpy` script that
+builds the product from primitives, keyframes an explode/transform and a
+camera orbit, tunes lighting so the product reads against pure black, and
+renders each frame as a JPEG via `blender -b -P <script>.py -- <out_dir> ...`.
+Default to this over an AI image/video generator — it's exact, reproducible,
+and doesn't depend on any particular MCP tool being connected.
 
-Look at each asset as it lands (Read the image) before moving on — a weak Asset 2
-means a weak scrub.
+Render a handful of test frames at low resolution first and look at them
+(Read the image) before committing to a full-length render — a weak explode
+choreography or a wrong camera angle means a weak scrub.
 
-### 2 · Extract frames — use the bundled script
+### 2 · Copy frames into the project
+Blender already wrote `frame_%04d.jpg` directly — there's no video to extract
+from. Copy the sequence into `public/frames/` and count it:
 ```bash
-scripts/extract_frames.sh <path/to/hero.mp4> <project-root>
+mkdir -p <project-root>/public/frames
+cp <out_dir>/frame_*.jpg <project-root>/public/frames/
+ls <project-root>/public/frames/*.jpg | wc -l   # → FRAME_COUNT, paste into site.config.ts
 ```
-It probes the video, extracts JPEGs at 24fps/1920px, copies frames + `hero.mp4`
-into `public/`, and prints **`FRAME_COUNT`**. Note that number.
+(`scripts/extract_frames.sh` is a leftover for the rare case you're starting
+from an existing video instead of a Blender render — mp4 in, JPEGs +
+`FRAME_COUNT` out. Not the default path.)
 
 ### 3 · Scaffold from the template
 Copy `assets/template/` into the project root. That is a complete Next.js 15 /
@@ -106,8 +112,11 @@ These are baked into the template — preserve them:
   column under 768px), nothing dimmer than `#888` text on black.
 
 ## Reference files
-- `references/higgsfield-assets.md` — the 3-asset generation chain, prompt
-  formulas per product type, model IDs, polling.
+- `references/blender-render.md` — writing the procedural Blender script,
+  headless rendering, camera/lighting/explode choreography, gotchas.
+- `references/worked-example.md` — a real shipped script (Steam Machine)
+  annotated with the reasoning behind every choice; read this alongside
+  blender-render.md before modeling a new product.
 - `references/customize-and-verify.md` — editing `site.config.ts`, fonts, the
   screenshot-black gotcha + the pixel-sampling verification snippet, deploy notes.
 - `scripts/extract_frames.sh` — frame extraction (prints `FRAME_COUNT`).
